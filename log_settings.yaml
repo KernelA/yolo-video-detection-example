@@ -1,0 +1,22 @@
+version: 1
+formatters:
+  default_console_thread:
+    (): video_detection.log_set.utc_formatter.UTCFormatter
+    format: '%(asctime)s %(levelname)s %(threadName)s %(module)s %(funcName)s %(message)s'
+  default_console_process:
+    (): video_detection.log_set.utc_formatter.UTCFormatter
+    format: '%(asctime)s %(levelname)s %(processName)s %(module)s %(funcName)s %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: default_console_thread
+    stream: ext://sys.stdout
+loggers:
+  custom:
+    level: DEBUG
+    handlers: [console]
+    propagate: no
+root:
+  level: INFO
+  handlers: [console]
