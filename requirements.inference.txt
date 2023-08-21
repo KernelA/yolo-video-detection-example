@@ -1,0 +1,2 @@
+onnxruntime~=1.15.1
+opencv-python-headless~=4.8.0.76

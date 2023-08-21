@@ -1,6 +1,10 @@
+torch~=2.0.1
+torchvision~=0.15.1
 pyyaml
 ultralytics~=8.0.114
 av~=10.0.0
-torch~=2.0.1
-torchvision~=0.15.1
+onnxsim~=0.4.33
+onnx~=1.14.0
+ipykernel
 --extra-index-url https://download.pytorch.org/whl/cu118
+-r ./requirements.inference.txt
