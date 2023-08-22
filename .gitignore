@@ -139,3 +139,4 @@ cython_debug/
 .vscode/
 *.jpg
 test.ipynb
+**/nms/*.c

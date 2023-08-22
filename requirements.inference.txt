@@ -1,2 +1,4 @@
-onnxruntime~=1.15.1
-opencv-python-headless~=4.8.0.76
+opencv-python-headless~=4.5.3.0
+# onnxruntime-openvino~=1.11.0
+onnxruntime-gpu~=1.10.0
+numpy~=1.20.3 # as in touch designer required version

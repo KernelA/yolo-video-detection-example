@@ -1,6 +1,5 @@
 from typing import List, NamedTuple, Optional, Sequence
 
-import cv2
 import numpy as np
 import onnxruntime as ort
 
@@ -11,6 +10,7 @@ from ..bbox_utils import (clip_boxes_inplace,
 from ..classes import parse_class_mapping_from_str
 from ..image_utils import (PadInfo, ScaleInfo, pad_image,
                            resize_to_required_size_keep_aspect_ratio)
+from ..nms import boxes_nms
 
 
 class DetectionInfo(NamedTuple):
@@ -20,9 +20,15 @@ class DetectionInfo(NamedTuple):
 
 
 class ONNXYoloV8Detector:
-    def __init__(self, path_to_model: str, providers: Optional[List[str]] = None):
+    def __init__(self,
+                 path_to_model: str,
+                 providers: Optional[List[str]] = None,
+                 provider_options: Optional[List[dict]] = None,
+                 session_options: Optional[ort.SessionOptions] = None):
         self.session = ort.InferenceSession(
             path_to_model,
+            session_options=session_options,
+            provider_options=provider_options,
             providers=providers
         )
         inputs = self.session.get_inputs()
@@ -37,6 +43,8 @@ class ONNXYoloV8Detector:
             self.session.get_modelmeta().custom_metadata_map["names"])
         input_shape = inputs[0].shape
         self._max_image_size = max(input_shape[2:])
+        self._padded_image_buffer = np.empty(
+            (self._max_image_size, self._max_image_size, input_shape[1]), dtype=np.uint8)
         self.input_name = inputs[0].name
 
     def postpocess(self,
@@ -46,7 +54,9 @@ class ONNXYoloV8Detector:
                    pad_info: PadInfo,
                    scale_info: ScaleInfo,
                    original_width: int,
-                   original_height: int) -> DetectionInfo:
+                   original_height: int,
+                   max_k: int,
+                   eta: float) -> DetectionInfo:
         """pred: [1 x 84 x 8400]
 
             1 - bath size
@@ -60,7 +70,10 @@ class ONNXYoloV8Detector:
         scores = raw_scores.max(axis=0)
 
         xywh = yolo_bbox2xywh_inplace(xywh_yolo)
-        bbox_indices = cv2.dnn.NMSBoxes(xywh, scores, score_threshold, nms_threshold)
+
+        # in some version Touch designer NMSBoxes does not work
+        # bbox_indices = cv2.dnn.NMSBoxes(xywh, scores, score_threshold, nms_threshold)
+        bbox_indices = boxes_nms(xywh, scores, score_threshold, nms_threshold, eta, max_k)
 
         det_xywh = xywh[bbox_indices]
         class_indices = raw_scores[:, bbox_indices].argmax(axis=0)
@@ -78,7 +91,8 @@ class ONNXYoloV8Detector:
 
     def preprocess_image(self, image: np.ndarray):
         image, scale_info = resize_to_required_size_keep_aspect_ratio(image, self._max_image_size)
-        image, pad_info = pad_image(image, self._max_image_size, self._max_image_size)
+        image, pad_info = pad_image(image, self._max_image_size,
+                                    self._max_image_size, padded_image=self._padded_image_buffer)
         image = image.transpose((2, 0, 1)).astype(np.float32)
         image /= 255
         return image[np.newaxis, ...], scale_info, pad_info
@@ -88,8 +102,22 @@ class ONNXYoloV8Detector:
         """
         return self.session.run(None, {self.input_name: image})[0]
 
-    def predict(self, image: np.ndarray, score_threshold: float, nms_threshold: float) -> DetectionInfo:
+    def predict(self,
+                image: np.ndarray,
+                score_threshold: float,
+                nms_threshold: float,
+                max_k: int = 0,
+                eta: float = 1.0) -> DetectionInfo:
         original_height, original_width = image.shape[:2]
         image, scale_info, pad_info = self.preprocess_image(image)
         raw_pred = self._raw_predict(image)
-        return self.postpocess(raw_pred, score_threshold, nms_threshold, pad_info, scale_info, original_width=original_width, original_height=original_height)
+        return self.postpocess(
+            raw_pred,
+            score_threshold,
+            nms_threshold,
+            pad_info,
+            scale_info,
+            original_width=original_width,
+            original_height=original_height,
+            max_k=max_k,
+            eta=eta)
