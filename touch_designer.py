@@ -1,31 +1,60 @@
-import cv2
+from multiprocessing import shared_memory
+import enum
+
 import numpy as np
-import os
+import cv2
 
-from yolo_models.detection import ONNXYoloV8Detector
-import onnxruntime as ort
+# Sync with touch designer code
+@enum.unique
+class BufferStates(enum.IntEnum):
+    SERVER = 0
+    CLIENT = 1
+    SERVER_ALIVE = 2
 
-DETECTOR = None
+@enum.unique
+class States(bytes, enum.Enum):
+    NULL_STATE = b'0'
+    READY_SERVER_MESSAGE = b'1'
+    READY_CLIENT_MESSAGE = b'2'
+    IS_SERVER_ALIVE = b'3'
 
-os.environ["CUDA_PATH"] = ""
+@enum.unique
+class ParamsIndex(enum.IntEnum):
+    IOU_THRESH = 0
+    SCORE_THRESH = 1
+    TOP_K = 2
+    ETA = 3
+    IMAGE_WIDTH = 4
+    IMAGE_HEIGHT = 5
+    IMAGE_CHANNELS = 6
+    SHARED_ARRAY_MEM_NAME = 7
+    SHARD_STATE_MEM_NAME = 8
+    IMAGE_DTYPE = 9
+
+SHARED_MEM_PARAMS_LIST = shared_memory.ShareableList(name="params")
+
+WIDTH = SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_WIDTH]
+HEIGHT = SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_HEIGHT]
+DTYPE = SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_DTYPE]
+NUM_CHANNELS = SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_CHANNELS]
+EXIT = False
 
 
-def get_model(path_to_model):
-    sess_opt = ort.SessionOptions()
-    sess_opt.execution_mode = ort.ExecutionMode.ORT_PARALLEL
-    return ONNXYoloV8Detector(path_to_model, providers=["CUDAExecutionProvider"], session_options=sess_opt)
+SHARED_MEM_UPDATE_STATES = shared_memory.SharedMemory(name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARD_STATE_MEM_NAME], create=False)
+SHARED_MEM_ARRAY = shared_memory.SharedMemory(name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARED_ARRAY_MEM_NAME], create=False)
+
+ARRAY = np.ndarray((WIDTH, HEIGHT, NUM_CHANNELS), dtype=DTYPE, buffer=SHARED_MEM_ARRAY.buf)
 
 
 def onSetupParameters(scriptOp):
     page = scriptOp.appendCustomPage("Detection")
-    page.appendFile("Modelpath", label="Model path")
     p = page.appendFloat("Nms", label="Intersection ratio between bboxes")
     p.default = 0.5
     p.min = 0
     p.max = 1
     p = page.appendFloat("Score", label="Minimum score for object")
     p.default = 0.5
-    p.min = 0
+    p.min = 0.1
     p.max = 1
     p = page.appendInt("Maxk", label="Maximum number of objects to detect based on score")
     p.default = 5
@@ -39,46 +68,54 @@ def onSetupParameters(scriptOp):
     return
 
 
-def onPulse(par):
-    global DETECTOR
-    if par.name == "Modelpath":
-        DETECTOR = None
+def onDestroy():
+    global EXIT
+    global SHARED_MEM_UPDATE_STATES
+    global SHARED_MEM_ARRAY
+    global SHARED_MEM_PARAMS_LIST
+    EXIT = True
+    SHARED_MEM_UPDATE_STATES.close()
+    SHARED_MEM_ARRAY.close()
+    SHARED_MEM_PARAMS_LIST.shm.close()
+    debug("Free all shared memory")
     return
 
 
 def onCook(scriptOp):
-    global DETECTOR
+    global SHARED_MEM_UPDATE_STATES
+    global SHARED_MEM_PARAMS_LIST
+    global SHARED_MEM_ARRAY
+    global EXIT
 
-    if scriptOp.par.Modelpath and DETECTOR is None:
-        debug("Load model from: ", scriptOp.par.Modelpath.eval())
-        DETECTOR = get_model(scriptOp.par.Modelpath.eval())
-
-    if DETECTOR is None:
-        debug("Model is not loaded")
-        return
+    debug(ARRAY.shape)
 
     if not scriptOp.inputs:
         return
 
     video_in = scriptOp.inputs[0]
-
     frame = video_in.numpyArray(delayed=True, writable=False)
 
     if frame is None:
         return
 
-    image = cv2.cvtColor((frame * 255).astype(np.uint8), cv2.COLOR_RGBA2RGB)
+    image = cv2.cvtColor(frame, cv2.COLOR_RGBA2RGB)
+    image = cv2.resize(image, (WIDTH, HEIGHT))
 
-    detection = DETECTOR.predict(
-        image,
-        score_threshold=scriptOp.par.Score.eval(),
-        nms_threshold=scriptOp.par.Nms.eval(),
-        max_k=scriptOp.par.Maxk.eval(),
-        eta=scriptOp.par.Eta.eval())
+    SHARED_MEM_PARAMS_LIST[ParamsIndex.SCORE_THRESH] = scriptOp.par.Score.eval()
+    SHARED_MEM_PARAMS_LIST[ParamsIndex.IOU_THRESH] = scriptOp.par.Nms.eval()
+    SHARED_MEM_PARAMS_LIST[ParamsIndex.TOP_K] = scriptOp.par.Maxk.eval()
+    SHARED_MEM_PARAMS_LIST[ParamsIndex.ETA] = scriptOp.par.Eta.eval()
+    np.copyto(ARRAY, image)
 
-    for xyxy in detection.xyxy_boxes:
-        image = cv2.rectangle(image, xyxy[:2], xyxy[2:], (255, 0, 0), 3)
+    SHARED_MEM_UPDATE_STATES.buf[BufferStates.SERVER] = States.READY_SERVER_MESSAGE.value[0]
 
-    scriptOp.copyNumpyArray(image)
+    while not EXIT and SHARED_MEM_UPDATE_STATES.buf[BufferStates.SERVER_ALIVE] == States.IS_SERVER_ALIVE.value[0] and SHARED_MEM_UPDATE_STATES.buf[BufferStates.CLIENT] != States.READY_CLIENT_MESSAGE.value[0]:
+        pass
+
+    if SHARED_MEM_UPDATE_STATES.buf[BufferStates.SERVER_ALIVE] != States.IS_SERVER_ALIVE.value[0]:
+        raise ValueError("Server process died")
+
+    scriptOp.copyNumpyArray(ARRAY)
+    SHARED_MEM_UPDATE_STATES.buf[BufferStates.CLIENT] = States.NULL_STATE.value[0]
 
     return

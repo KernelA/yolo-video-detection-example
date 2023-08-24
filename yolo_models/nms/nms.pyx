@@ -1,6 +1,7 @@
 import numpy as np
 
 cimport numpy as cnp
+cimport cython
 
 cnp.import_array()
 
@@ -10,7 +11,8 @@ INDEX_DTYPE = np.int32
 ctypedef cnp.float32_t FLOAT_ELEM_DTYPE_COMPILE
 ctypedef cnp.int32_t INDEX_DTYPE_COMPILE
 
-
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cpdef cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] bbox_intersection(
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] lhs_xywh, 
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] rhs_xywh):
@@ -24,7 +26,8 @@ cpdef cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] bbox_intersection(
 
     return np.array([x1, y1, width, height], dtype=FLOAT_ELEM_DTYPE)
 
-
+@cython.boundscheck(False) 
+@cython.wraparound(False)  
 cpdef list[tuple[float, int]] get_max_score_index(
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] scores, 
     float threshold, 
@@ -46,12 +49,15 @@ cpdef list[tuple[float, int]] get_max_score_index(
 
     return score_index_vec
 
-
+@cython.boundscheck(False) 
+@cython.wraparound(False) 
 cpdef inline float area(
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] xywh_box):
     return xywh_box[2] * xywh_box[3]
 
 
+@cython.boundscheck(False) 
+@cython.wraparound(False)  
 cpdef double jaccard_distance(
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] a_xywh, 
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] b_xywh):
@@ -70,12 +76,15 @@ cpdef double jaccard_distance(
     # distance = 1 - jaccard_index
     return 1 - Aab / (Aa + Ab - Aab)
 
-
+@cython.boundscheck(False) 
+@cython.wraparound(False)  
 cpdef double rect_overlap(
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] a_xywh, 
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] b_xywh):
     return 1 - jaccard_distance(a_xywh, b_xywh)
 
+@cython.boundscheck(False) 
+@cython.wraparound(False)  
 def boxes_nms(
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=2] bboxes_xywh, 
     cnp.ndarray[FLOAT_ELEM_DTYPE_COMPILE, ndim=1] scores, 

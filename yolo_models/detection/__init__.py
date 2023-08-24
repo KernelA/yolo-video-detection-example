@@ -1,1 +1,1 @@
-from .detector import ONNXYoloV8Detector
+from .detector import ONNXYoloDetector, PyTorchYoloDetector
