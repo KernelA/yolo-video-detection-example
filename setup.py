@@ -1,5 +1,5 @@
 import numpy as np
-from setuptools import Extension, find_packages, setup, find_namespace_packages
+from setuptools import Extension, find_packages, setup
 from Cython.Build import cythonize
 
 req_list = []
@@ -19,6 +19,8 @@ exts = Extension(
 
 setup(install_requires=req_list,
       packages=find_packages(include=[f"{PACKAGE_NAME}*"]),
-      ext_modules=cythonize(exts, compiler_directives={"language_level": "3"},
+      ext_modules=cythonize(exts,
+                            compiler_directives={"language_level": "3"},
+                            exclude=[f"{PACKAGE_NAME}/**/*.c"]
                             )
       )

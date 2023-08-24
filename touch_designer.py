@@ -39,6 +39,7 @@ DTYPE = SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_DTYPE]
 NUM_CHANNELS = SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_CHANNELS]
 EXIT = False
 
+COLOR_CONVERSION = cv2.COLOR_RGBA2RGB if NUM_CHANNELS == 3 else None
 
 SHARED_MEM_UPDATE_STATES = shared_memory.SharedMemory(name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARD_STATE_MEM_NAME], create=False)
 SHARED_MEM_ARRAY = shared_memory.SharedMemory(name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARED_ARRAY_MEM_NAME], create=False)
@@ -86,19 +87,21 @@ def onCook(scriptOp):
     global SHARED_MEM_PARAMS_LIST
     global SHARED_MEM_ARRAY
     global EXIT
-
-    debug(ARRAY.shape)
+    global COLOR_CONVERSION
 
     if not scriptOp.inputs:
         return
 
     video_in = scriptOp.inputs[0]
+    # By default, the image is flipped up. We flip it early
     frame = video_in.numpyArray(delayed=True, writable=False)
 
     if frame is None:
         return
 
-    image = cv2.cvtColor(frame, cv2.COLOR_RGBA2RGB)
+    if COLOR_CONVERSION is not None:
+        image = cv2.cvtColor(frame, COLOR_CONVERSION)
+
     image = cv2.resize(image, (WIDTH, HEIGHT))
 
     SHARED_MEM_PARAMS_LIST[ParamsIndex.SCORE_THRESH] = scriptOp.par.Score.eval()
