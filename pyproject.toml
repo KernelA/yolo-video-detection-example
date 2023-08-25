@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 skip = ["setup.py"]
 
 [project]
-name = "yolo_models"
+name = "touch_designer_yolo_models"
 authors =[ { name="None"  }]
 requires-python = ">=3.9"
 version = "0.0.1"

@@ -1,0 +1,44 @@
+name: Python package
+
+on:
+    push:
+      branches:
+        - master
+        - develop
+    pull_request: 
+      branches: 
+        - develop
+        - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+    
+    steps:
+        - uses: actions/checkout@v3
+
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v4
+          with:
+            python-version: ${{ matrix.python-version }}
+            cache: 'pip'
+            cache-dependency-path: 'requirements.*.txt'
+
+        - name: Install dependencies
+          run: pip install -r ./requirements.cpu.txt -r ./requirements.dev.txt
+
+        - name: Build package
+          run: python -m build --no-isolation -w
+
+        - name: Install package
+          run: pip install ./dist/*.whl
+          
+        - name: Run tests
+          run: |
+            rm -r ./yolo_models
+            pytest ./tests

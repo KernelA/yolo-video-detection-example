@@ -1,5 +1,5 @@
-import numpy as np
 from setuptools import Extension, find_packages, setup
+import numpy as np
 from Cython.Build import cythonize
 
 

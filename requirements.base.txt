@@ -5,5 +5,4 @@ onnxsim~=0.4.33
 onnx~=1.14.0
 ipykernel
 cython~=3.0.0
-build~=0.10.0
 -r ./requirements.inference.txt
