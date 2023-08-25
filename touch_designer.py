@@ -1,35 +1,9 @@
 from multiprocessing import shared_memory
-import enum
 
 import numpy as np
 import cv2
 
-# Sync with touch designer code
-@enum.unique
-class BufferStates(enum.IntEnum):
-    SERVER = 0
-    CLIENT = 1
-    SERVER_ALIVE = 2
-
-@enum.unique
-class States(bytes, enum.Enum):
-    NULL_STATE = b'0'
-    READY_SERVER_MESSAGE = b'1'
-    READY_CLIENT_MESSAGE = b'2'
-    IS_SERVER_ALIVE = b'3'
-
-@enum.unique
-class ParamsIndex(enum.IntEnum):
-    IOU_THRESH = 0
-    SCORE_THRESH = 1
-    TOP_K = 2
-    ETA = 3
-    IMAGE_WIDTH = 4
-    IMAGE_HEIGHT = 5
-    IMAGE_CHANNELS = 6
-    SHARED_ARRAY_MEM_NAME = 7
-    SHARD_STATE_MEM_NAME = 8
-    IMAGE_DTYPE = 9
+from yolo_models.processing.info import BufferStates, States, ParamsIndex
 
 SHARED_MEM_PARAMS_LIST = shared_memory.ShareableList(name="params")
 
@@ -41,8 +15,10 @@ EXIT = False
 
 COLOR_CONVERSION = cv2.COLOR_RGBA2RGB if NUM_CHANNELS == 3 else None
 
-SHARED_MEM_UPDATE_STATES = shared_memory.SharedMemory(name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARD_STATE_MEM_NAME], create=False)
-SHARED_MEM_ARRAY = shared_memory.SharedMemory(name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARED_ARRAY_MEM_NAME], create=False)
+SHARED_MEM_UPDATE_STATES = shared_memory.SharedMemory(
+    name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARD_STATE_MEM_NAME], create=False)
+SHARED_MEM_ARRAY = shared_memory.SharedMemory(
+    name=SHARED_MEM_PARAMS_LIST[ParamsIndex.SHARED_ARRAY_MEM_NAME], create=False)
 
 ARRAY = np.ndarray((WIDTH, HEIGHT, NUM_CHANNELS), dtype=DTYPE, buffer=SHARED_MEM_ARRAY.buf)
 

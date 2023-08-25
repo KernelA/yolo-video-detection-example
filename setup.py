@@ -2,12 +2,19 @@ import numpy as np
 from setuptools import Extension, find_packages, setup
 from Cython.Build import cythonize
 
-req_list = []
 
-with open("requirements.inference.txt", encoding="utf-8") as file:
-    for line in map(str.strip, file):
-        if line:
-            req_list.append(line)
+def get_req(filepath: str):
+    req_list = []
+
+    with open(filepath, encoding="utf-8") as file:
+        for line in map(str.strip, file):
+            if line:
+                if line.startswith("--extra-index-url"):
+                    continue
+                req_list.append(line)
+
+    return req_list
+
 
 PACKAGE_NAME = "yolo_models"
 
@@ -17,10 +24,12 @@ exts = Extension(
     include_dirs=[np.get_include()],
 )
 
-setup(install_requires=req_list,
+setup(install_requires=get_req("requirements.inference.txt"),
       packages=find_packages(include=[f"{PACKAGE_NAME}*"]),
-      ext_modules=cythonize(exts,
-                            compiler_directives={"language_level": "3"},
-                            exclude=[f"{PACKAGE_NAME}/**/*.c"]
-                            )
-      )
+      extras_require={
+          "torch": get_req("requirements.torch.gpu.txt")
+},
+    ext_modules=cythonize(exts,
+                          compiler_directives={"language_level": "3"},
+                          )
+)
