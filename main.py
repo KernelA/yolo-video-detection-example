@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 from ultralytics import YOLO
 from ultralytics.yolo.engine.results import Results
 
-from video_detection.log_set import init_logging
+from yolo_models.log_set import init_logging
 
 
 def main(args):
