@@ -86,5 +86,6 @@ upload_to_vcs_release = false
 [tool.cibuildwheel]
 test-requires = "pytest"
 test-command = "pytest {project}/tests"
-skip = ["*-win32", "*-manylinux_i686", "pp*", '*_arm64']
-before-build = "pip install -r ./requirements.inference.txt -r ./requirements.torch.cpu.txt"
+before-test = "pip install -r ./requirements.inference.txt -r ./requirements.torch.cpu.txt"
+build = "cp39-*"
+skip = ["*-win32", "*-manylinux_i686", "pp*", '*_arm64',  "*-musllinux_*"]

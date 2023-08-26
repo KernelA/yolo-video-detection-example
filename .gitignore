@@ -140,3 +140,4 @@ cython_debug/
 *.jpg
 test.ipynb
 **/nms/*.c
+wheelhouse/
