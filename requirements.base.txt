@@ -3,6 +3,5 @@ ultralytics~=8.0.114
 av~=10.0.0
 onnxsim~=0.4.33
 onnx~=1.14.0
-ipykernel
 cython~=3.0.0
 -r ./requirements.inference.txt
