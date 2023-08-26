@@ -3,3 +3,6 @@ pylint
 pytest
 setuptools>=63.0
 wheel>=0.40
+build~=0.10.0
+twine~=4.0.2
+python-semantic-release~=8.0.7
