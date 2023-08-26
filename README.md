@@ -31,7 +31,7 @@ pip install -r ./requirements.dev.txt
 You need C compiler to compile extension. [See](https://docs.cython.org/en/latest/src/quickstart/install.html#installing-cython)
 
 ```
-python -m build --no-isolation -w
+python -m cibuildwheel --platform <your_platform>
 ```
 
 Install binary distribution:

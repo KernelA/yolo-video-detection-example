@@ -1,5 +1,10 @@
 [build-system]
-requires = ["setuptools>=63.0", "wheel>=0.40"]
+requires = [
+    "setuptools>=63.0", 
+    "wheel>=0.40",
+    "cython~=3.0.0",
+    "numpy>=1.20.0"
+]
 build-backend = "setuptools.build_meta"
 
 [tool.isort]
@@ -76,3 +81,11 @@ env = "GH_TOKEN"
 [tool.semantic_release.publish]
 dist_glob_patterns = ["dist/*"]
 upload_to_vcs_release = false
+
+
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/tests"
+before-test = "pip install -r ./requirements.inference.txt -r ./requirements.torch.cpu.txt"
+build = "cp39-*"
+skip = ["*-win32", "*-manylinux_i686", "pp*", '*_arm64',  "*-musllinux_*"]

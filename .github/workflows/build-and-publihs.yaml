@@ -16,13 +16,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.9"]
-        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        os: ["ubuntu-20.04", "windows-2019", "macos-11"]
+    
+    runs-on: ${{ matrix.os }}
     
     steps:
         - uses: actions/checkout@v3
@@ -35,24 +35,17 @@ jobs:
             cache-dependency-path: 'requirements.*.txt'
 
         - name: Install dependencies
-          run: pip install -r ./requirements.cpu.txt -r ./requirements.dev.txt
+          run: pip install -r ./requirements.dev.txt
 
-        - name: Build package
-          run: python -m build --no-isolation -w
+        - name: Build wheels
+          run: python -m cibuildwheel --output-dir wheelhouse
 
-        - name: Install package
-          run: pip install ./dist/*.whl
-          
-        - name: Run tests
-          run: |
-            pytest ./tests
-        
         - name: Upload to PyPi
           if: ${{ github.ref_name == 'master' }}
           env:
             TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
             TWINE_PASSWORD: ${{ secrets.PYPI_SECRET }}
-          run: twine upload --skip-existing --non-interactive ./dist/*.whl
+          run: twine upload --skip-existing --non-interactive ./wheelhouse/*.whl
 
   release:
     runs-on: "ubuntu-latest"    
