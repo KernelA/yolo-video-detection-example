@@ -1,5 +1,8 @@
 name: Python package
 
+permissions:
+  actions: write
+
 on:
     push:
       branches:
