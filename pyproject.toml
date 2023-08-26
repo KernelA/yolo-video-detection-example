@@ -62,8 +62,8 @@ env = "GIT_COMMIT_AUTHOR"
 default = "semantic-release <semantic-release>"
 
 [tool.semantic_release.commit_parser_options]
-minor_tag = ":patch:"
-patch_tag = ":minor:"
+minor_tag = ":minor:"
+patch_tag = ":patch:"
 
 [tool.semantic_release.remote]
 name = "origin"
