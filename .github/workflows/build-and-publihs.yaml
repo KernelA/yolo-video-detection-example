@@ -1,7 +1,8 @@
 name: Python package
 
 permissions:
-  actions: write
+    id-token: write
+    contents: write
 
 on:
     push:
