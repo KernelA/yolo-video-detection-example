@@ -9,6 +9,8 @@
 
 ## How to run
 
+[![PyPI version](https://badge.fury.io/py/touch-designer-yolo-detection.svg)](https://badge.fury.io/py/touch-designer-yolo-detection)
+
 ### Install dependencies
 
 For GPU:
