@@ -2,6 +2,21 @@
 
 ## Description
 
+This project demonstrate how to use custom ML model in the TouchDesigner. The solution consists from two components:
+1. Script TOP in the TouchDesigner.
+2. External process to process data.
+
+```mermaid
+sequenceDiagram
+    participant T as TouchDesigner
+    participant S as Shared memory
+    participant P as Python external process
+    T->>S: Send frame to shared memory
+    S->>P: Read frame from shared memory
+    P->>S: Process frame and write to shared memory
+    S->>T: Read processed frame from shared memory
+```
+
 
 ## Requirements
 
@@ -9,15 +24,19 @@
 
 ## How to run
 
+### Install prebuild package from PyPi
+
 [![PyPI version](https://badge.fury.io/py/touch-designer-yolo-detection.svg)](https://badge.fury.io/py/touch-designer-yolo-detection)
 
-### Install dependencies
+### From source
+
+#### Install dependencies
 
 For GPU:
 ```
 pip install -r. /requirements.gpu.txt
 ```
-s
+
 For CPU:
 ```
 pip install -r. /requirements.cpu.txt
@@ -30,8 +49,16 @@ pip install -r ./requirements.dev.txt
 
 ### Compile Cython extension
 
-You need C compiler to compile extension. [See](https://docs.cython.org/en/latest/src/quickstart/install.html#installing-cython)
+[You need C compiler](https://docs.cython.org/en/latest/src/quickstart/install.html#installing-cython) to compile extension.
 
+#### Develop mode
+```
+pip install -e .
+```
+
+#### Binary distribution
+
+To compile binary distribution:
 ```
 python -m cibuildwheel --platform <your_platform>
 ```
@@ -49,8 +76,6 @@ Run:
 python ./main.py -c <checkpoint_path> -i <video_path> -o <video_path>
 ```
 
-**If you run script in the directory with source code see modification of `sys.path` in the beginner of the file.**
-
 ### With TouchDesigner
 
 Run server processing:
@@ -58,4 +83,4 @@ Run server processing:
 python ./processing.py -p <path_to_model>
 ```
 
-Open `touch_designer.py` in the TouchDesigner as SCript TOP.
+Open `touch_designer.py` in the TouchDesigner as script TOP.
