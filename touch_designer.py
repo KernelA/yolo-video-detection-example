@@ -5,6 +5,7 @@ import cv2
 
 from yolo_models.processing.info import BufferStates, States, ParamsIndex
 
+# Sync with external process
 SHARED_MEM_PARAMS_LIST = shared_memory.ShareableList(name="params")
 
 WIDTH = SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_WIDTH]
