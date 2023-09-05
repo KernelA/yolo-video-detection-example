@@ -80,17 +80,14 @@ def onCook(scriptOp):
     image = video_in.numpyArray(delayed=True, writable=False)
 
     if image is None:
-        scriptOp.clear()
         return
 
     if image.shape[0] > MAX_IMAGE_HEIGHT:
         debug("Too large image height")
-        scriptOp.clear()
         return
 
     if image.shape[1] > MAX_IMAGE_WIDTH:
         debug("Too large image width")
-        scriptOp.clear()
         return
 
     if COLOR_CONVERSION is not None:
@@ -129,13 +126,13 @@ def onCook(scriptOp):
             break
 
     if SHARED_MEM_UPDATE_STATES.buf[BufferStates.SERVER_ALIVE] != States.IS_SERVER_ALIVE.value[0]:
-        scriptOp.clear()
         raise ValueError("Server process died")
 
     if is_skip:
-        scriptOp.clear()
+        SHARED_MEM_UPDATE_STATES.buf[BufferStates.CLIENT] = States.NULL_STATE.value[0]
         return
 
     scriptOp.copyNumpyArray(ARRAY[:image.shape[0], :image.shape[1]])
     SHARED_MEM_UPDATE_STATES.buf[BufferStates.CLIENT] = States.NULL_STATE.value[0]
+
     return
