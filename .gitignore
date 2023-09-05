@@ -141,3 +141,4 @@ cython_debug/
 test.ipynb
 **/nms/*.c
 wheelhouse/
+class_colors.json

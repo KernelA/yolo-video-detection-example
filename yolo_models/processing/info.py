@@ -1,11 +1,14 @@
 import enum
 
 # Sync with touch designer code
+
+
 @enum.unique
 class BufferStates(enum.IntEnum):
     SERVER = 0
     CLIENT = 1
     SERVER_ALIVE = 2
+
 
 @enum.unique
 class States(bytes, enum.Enum):
@@ -13,6 +16,14 @@ class States(bytes, enum.Enum):
     READY_SERVER_MESSAGE = b'1'
     READY_CLIENT_MESSAGE = b'2'
     IS_SERVER_ALIVE = b'3'
+
+
+@enum.unique
+class DrawInfo(enum.IntFlag):
+    DRAW_TEXT = enum.auto()
+    DRAW_BBOX = enum.auto()
+    DRAW_CONF = enum.auto()
+
 
 @enum.unique
 class ParamsIndex(enum.IntEnum):
@@ -26,3 +37,4 @@ class ParamsIndex(enum.IntEnum):
     SHARED_ARRAY_MEM_NAME = 7
     SHARD_STATE_MEM_NAME = 8
     IMAGE_DTYPE = 9
+    DRAW_INFO = 10

@@ -4,7 +4,8 @@ import time
 
 import numpy as np
 
-from .info import ParamsIndex, BufferStates, States
+from .info import ParamsIndex, BufferStates, States, DrawInfo
+
 
 class BaseProcessServer:
     def __init__(self,
@@ -15,7 +16,7 @@ class BaseProcessServer:
                  image_height: int,
                  num_channels: int,
                  image_dtype):
-        self._logging  = logging.getLogger("server_processing")
+        self._logging = logging.getLogger("server_processing")
         dtype_size = np.dtype(image_dtype).itemsize
         self._image_size_bytes = image_height * image_with * num_channels * dtype_size
         self._image_width = image_with
@@ -30,9 +31,21 @@ class BaseProcessServer:
         self._params_shared_mem_name = params_shared_mem_name
         self._array_shared_mem_name = array_shared_mem_name
 
+    def _get_shared_mem_update(self, create: bool):
+        return shared_memory.SharedMemory(
+            name=self._update_shared_mem_name, create=create, size=len(BufferStates))
+
+    def _get_shared_mem_array(self, create: bool):
+        return shared_memory.SharedMemory(
+            name=self._array_shared_mem_name, create=create, size=self._image_size_bytes)
+
     def init_mem(self):
         assert self._sh_mem_update is None,  "Memory already initialized"
-        self._sh_mem_update = shared_memory.SharedMemory(name=self._update_shared_mem_name, create=True, size=len(BufferStates))
+        try:
+            self._sh_mem_update = self._get_shared_mem_update(True)
+        except FileExistsError:
+            self._logging.warning("Cannot create new shared memory. Use existed")
+            self._sh_mem_update = self._get_shared_mem_update(False)
 
         params = [None] * len(ParamsIndex)
         params[ParamsIndex.ETA] = 1.0
@@ -45,11 +58,17 @@ class BaseProcessServer:
         params[ParamsIndex.SHARED_ARRAY_MEM_NAME] = self._array_shared_mem_name
         params[ParamsIndex.SHARD_STATE_MEM_NAME] = self._update_shared_mem_name
         params[ParamsIndex.IMAGE_DTYPE] = self._image_dtype
+        params[ParamsIndex.DRAW_INFO] = int(DrawInfo.DRAW_BBOX)
 
         self._sh_mem_params = shared_memory.ShareableList(
             name=self._params_shared_mem_name, sequence=params
         )
-        self._sh_mem_array = shared_memory.SharedMemory(name=self._array_shared_mem_name, create=True, size=self._image_size_bytes)
+
+        try:
+            self._sh_mem_array = self._get_shared_mem_array(True)
+        except FileExistsError:
+            self._sh_mem_array = self._get_shared_mem_array(False)
+
         self._shared_array = np.ndarray(
             (self._image_height, self._image_width, self._num_channels),
             dtype=self._image_dtype, buffer=self._sh_mem_array.buf)
@@ -95,7 +114,14 @@ class BaseProcessServer:
 
             self._sh_mem_update.buf[BufferStates.SERVER] = States.NULL_STATE.value[0]
 
-            self.process(self._shared_array, self._sh_mem_params)
+            image_height = self._sh_mem_params[ParamsIndex.IMAGE_HEIGHT]
+            image_width = self._sh_mem_params[ParamsIndex.IMAGE_WIDTH]
+
+            actual_image = self._shared_array[:image_height, :image_width]
+
+            self.process(actual_image, self._sh_mem_params)
+            self._shared_array[:image_height, :image_width] = actual_image
+
             self._sh_mem_update.buf[BufferStates.CLIENT] = States.READY_CLIENT_MESSAGE.value[0]
 
     def process(self, image: np.ndarray, params: list):

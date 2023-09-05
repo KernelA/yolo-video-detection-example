@@ -1,3 +1,2 @@
 opencv-python-headless>=4.7.0.0
 onnxruntime>=1.11.0
-matplotlib~=3.7
