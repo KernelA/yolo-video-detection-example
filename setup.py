@@ -46,10 +46,10 @@ exts = Extension(
 setup(install_requires=get_req("requirements.inference.txt"),
       version=get_version(),
       packages=find_packages(include=[f"{PACKAGE_NAME}*"]),
+      package_data={"": [f"{PACKAGE_NAME}/log_set/*.yaml"]},
       extras_require={
-          "torch": get_req("requirements.torch.gpu.txt")
-},
-    ext_modules=cythonize(exts,
-                          compiler_directives={"language_level": "3"},
-                          )
-)
+          "torch": get_req("requirements.torch.gpu.txt")},
+      ext_modules=cythonize(exts,
+                            compiler_directives={"language_level": "3"},
+                            )
+      )
