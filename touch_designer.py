@@ -77,13 +77,11 @@ def onCook(scriptOp):
 
     video_in = scriptOp.inputs[0]
     # By default, the image is flipped up. We flip it early
-    frame = video_in.numpyArray(delayed=True, writable=False)
+    image = video_in.numpyArray(delayed=True, writable=False)
 
-    if frame is None:
+    if image is None:
+        scriptOp.clear()
         return
-
-    if COLOR_CONVERSION is not None:
-        image = cv2.cvtColor(frame, COLOR_CONVERSION)
 
     if image.shape[0] > MAX_IMAGE_HEIGHT:
         debug("Too large image height")
@@ -94,6 +92,9 @@ def onCook(scriptOp):
         debug("Too large image width")
         scriptOp.clear()
         return
+
+    if COLOR_CONVERSION is not None:
+        image = cv2.cvtColor(image, COLOR_CONVERSION)
 
     SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_HEIGHT] = image.shape[0]
     SHARED_MEM_PARAMS_LIST[ParamsIndex.IMAGE_WIDTH] = image.shape[1]
@@ -116,17 +117,24 @@ def onCook(scriptOp):
 
     start_time = time.monotonic()
 
+    is_skip = False
+
     while not EXIT and SHARED_MEM_UPDATE_STATES.buf[BufferStates.SERVER_ALIVE] == States.IS_SERVER_ALIVE.value[0] and SHARED_MEM_UPDATE_STATES.buf[BufferStates.CLIENT] != States.READY_CLIENT_MESSAGE.value[0]:
         time.sleep(1e-3)
         elapsed = time.monotonic() - start_time
 
         if elapsed > 1:
             debug("Too long processing copy frame as is")
-            scriptOp.clear()
+            is_skip = True
             break
 
     if SHARED_MEM_UPDATE_STATES.buf[BufferStates.SERVER_ALIVE] != States.IS_SERVER_ALIVE.value[0]:
+        scriptOp.clear()
         raise ValueError("Server process died")
+
+    if is_skip:
+        scriptOp.clear()
+        return
 
     scriptOp.copyNumpyArray(ARRAY[:image.shape[0], :image.shape[1]])
     SHARED_MEM_UPDATE_STATES.buf[BufferStates.CLIENT] = States.NULL_STATE.value[0]
