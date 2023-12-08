@@ -47,16 +47,16 @@ For development:
 pip install -r ./requirements.dev.txt
 ```
 
-### Compile Cython extension
+#### Compile Cython extension
 
 [You need C compiler](https://docs.cython.org/en/latest/src/quickstart/install.html#installing-cython) to compile extension.
 
-#### Develop mode
+##### Develop mode
 ```
 pip install -e .
 ```
 
-#### Binary distribution
+##### Binary distribution
 
 To compile binary distribution:
 ```
